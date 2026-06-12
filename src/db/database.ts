@@ -96,6 +96,29 @@ export async function getAllUsers(): Promise<User[]> {
   });
 }
 
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction('users', 'readonly').objectStore('users').index('email').get(email);
+    req.onsuccess = () => resolve((req.result as User) ?? null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+export async function resetUserPassword(email: string, newPassword: string): Promise<boolean> {
+  const db = await openDB();
+  const user = await getUserByEmail(email);
+  if (!user) return false;
+  const hash = await simpleHash(newPassword);
+  const updated: User = { ...user, passwordHash: hash };
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('users', 'readwrite');
+    tx.objectStore('users').put(updated);
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
 // ---- QUIZ ----
 export async function saveQuizAnswers(userId: string, answers: QuizAnswers, emissions: EmissionBreakdown): Promise<void> {
   const db = await openDB();
