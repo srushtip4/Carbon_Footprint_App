@@ -97,11 +97,11 @@ export default function QuizPage() {
         await saveEcoPoints(user.id, currentPoints + 100);
         await addPoints(0);
         await refreshUserData();
-      });
+      }).catch(console.error);
     }
   };
 
-  const currentValue = answers[question?.id];
+  const currentValue = question ? answers[question.id] : undefined;
 
   if (showResults && emissions) {
     const chartData = [
@@ -149,7 +149,7 @@ export default function QuizPage() {
           </div>
         </div>
         <div className="text-center">
-          <button onClick={() => window.location.href = '/dashboard'} className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-all shadow-lg shadow-emerald-200">Go to Dashboard</button>
+          <button onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'dashboard' }))} className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-all shadow-lg shadow-emerald-200">Go to Dashboard</button>
         </div>
       </div>
     );
@@ -179,11 +179,11 @@ export default function QuizPage() {
         ) : (
           <div>
             <div className="flex items-center gap-4 mb-4">
-              <input type="number" min={question.min} max={question.max} value={(currentValue as number) ?? ''} onChange={e => setAnswers({ ...answers, [question.id]: Number(e.target.value) })} className="w-32 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-lg font-semibold text-gray-800" placeholder="0" />
+              <input type="number" min={question.min} max={question.max} value={currentValue != null ? String(currentValue) : ''} onChange={e => setAnswers({ ...answers, [question.id]: Number(e.target.value) })} className="w-32 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-lg font-semibold text-gray-800" placeholder="0" />
               <span className="text-gray-500 font-medium">{question.unitOverride}</span>
             </div>
             {question.min !== undefined && question.max !== undefined && (
-              <input type="range" min={question.min} max={question.max} value={(currentValue as number) ?? question.min} onChange={e => setAnswers({ ...answers, [question.id]: Number(e.target.value) })} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+              <input type="range" min={question.min} max={question.max} value={(currentValue as number) ?? question.min ?? 0} onChange={e => setAnswers({ ...answers, [question.id]: Number(e.target.value) })} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
             )}
           </div>
         )}
