@@ -53,7 +53,7 @@ export default function DashboardPage() {
   };
 
   if (!user || !locale || !baselineEmissions) {
-    return (<div className="max-w-5xl mx-auto px-4 py-12 text-center"><Leaf className="w-12 h-12 text-emerald-400 mx-auto mb-4" /><h2 className="text-xl font-bold text-gray-800 mb-2">Complete Your Quiz First</h2><p className="text-gray-500">Head to the Quiz to calculate your baseline carbon footprint.</p><button onClick={() => window.location.href = '/quiz'} className="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition">Take the Quiz</button></div>);
+    return (<div className="max-w-5xl mx-auto px-4 py-12 text-center"><Leaf className="w-12 h-12 text-emerald-400 mx-auto mb-4" /><h2 className="text-xl font-bold text-gray-800 mb-2">Complete Your Quiz First</h2><p className="text-gray-500">Head to the Quiz to calculate your baseline carbon footprint.</p><button onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'quiz' }))} className="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition">Take the Quiz</button></div>);
   }
 
   const gardenLevel = getGardenLevel(reductionPct);
