@@ -1,7 +1,7 @@
 import { QuizAnswers, EmissionBreakdown, LocaleConfig } from '../types';
 
 const TRANSPORT_MODE_FACTOR = [1.0, 0.75, 0.5, 0.15, 0.1, 0.0];
-const RIDESHARE_FACTOR = [0, 0.8, 2.0, 4.5, 8.0];
+const RIDESHARE_FACTOR = [0, 0.8, 2.0, 4.5];
 const SHORT_FLIGHT_FACTOR = 0.255;
 const LONG_FLIGHT_FACTOR = 0.195;
 const HEATING_FUEL_FACTOR = [1.0, 0.6, 1.5, 0.05];
