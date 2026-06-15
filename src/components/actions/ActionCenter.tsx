@@ -81,6 +81,17 @@ export default function ActionCenter() {
   const completedCount = actions.filter(a => a.completed).length;
   const totalSavings = actions.filter(a => a.completed).reduce((sum, a) => sum + a.co2SavingKg, 0);
 
+  if (!baselineEmissions) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-12 text-center">
+        <Target className="w-12 h-12 text-emerald-400 mx-auto mb-4" />
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Complete Your Quiz First</h2>
+        <p className="text-gray-500 mb-4">Take the carbon footprint quiz to get personalized action recommendations.</p>
+        <button onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'quiz' }))} className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition">Take the Quiz</button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-6"><Target className="w-6 h-6 text-emerald-600" /><h1 className="text-2xl font-bold text-gray-900">Action Center</h1></div>
