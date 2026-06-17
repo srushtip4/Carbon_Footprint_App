@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { QuizAnswers, LocaleConfig } from '../../types';
 import { calculateEmissions } from '../../utils/emissions';
 import { saveQuizAnswers, getEcoPoints, saveEcoPoints } from '../../db/database';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChevronRight, ChevronLeft, CheckCircle2 } from 'lucide-react';
+import { validateNumberInput, sanitizeText } from '../../utils/validation';
 
 interface QuizQuestion {
   id: keyof QuizAnswers;
@@ -67,6 +68,8 @@ export default function QuizPage() {
   const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
   const [showResults, setShowResults] = useState(false);
   const [emissions, setEmissions] = useState<ReturnType<typeof calculateEmissions> | null>(null);
+  const [validationError, setValidationError] = useState('');
+  const optionRef = useRef<HTMLButtonElement[]>([]);
 
   if (!user || !locale) return null;
 
@@ -75,6 +78,7 @@ export default function QuizPage() {
   const progress = ((step + 1) / questions.length) * 100;
 
   const handleAnswer = (value: number) => {
+    setValidationError('');
     const newAnswers = { ...answers, [question.id]: value };
     setAnswers(newAnswers);
     if (step < questions.length - 1) { setStep(step + 1); }
@@ -101,6 +105,16 @@ export default function QuizPage() {
     }
   };
 
+  const handleNumberSubmit = () => {
+    setValidationError('');
+    const value = answers[question.id] as number | undefined;
+    if (question.type === 'number' && question.min !== undefined && question.max !== undefined) {
+      const result = validateNumberInput(value, question.min, question.max, question.label);
+      if (!result.valid) { setValidationError(result.error); return; }
+    }
+    handleAnswer(value ?? 0);
+  };
+
   const currentValue = question ? answers[question.id] : undefined;
 
   if (showResults && emissions) {
@@ -111,15 +125,15 @@ export default function QuizPage() {
     ].filter(d => d.value > 0);
 
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <section className="max-w-3xl mx-auto px-4 py-8" aria-labelledby="results-heading">
         <div className="text-center mb-8">
-          <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900">Your Carbon Footprint Results</h1>
-          <p className="text-gray-500 mt-2">Based on your lifestyle using {locale.emissionSource} factors</p>
+          <CheckCircle2 className="w-16 h-16 text-emerald-500 mx-auto mb-4" aria-hidden="true" />
+          <h1 id="results-heading" className="text-3xl font-bold text-gray-900">Your Carbon Footprint Results</h1>
+          <p className="text-gray-500 mt-2">Based on your lifestyle using {sanitizeText(locale.emissionSource)} factors</p>
         </div>
         <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-emerald-100 mb-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
-            <div className="w-64 h-64">
+            <div className="w-64 h-64" role="img" aria-label={`Emission breakdown chart. Transport: ${emissions.transport} kg, Flights: ${emissions.flights} kg, Energy: ${emissions.energy} kg, Food: ${emissions.food} kg, Waste: ${emissions.waste} kg`}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie data={chartData} cx="50%" cy="50%" innerRadius={50} outerRadius={100} paddingAngle={3} dataKey="value" animationBegin={0} animationDuration={1200}>
@@ -138,7 +152,7 @@ export default function QuizPage() {
               <div className="space-y-2">
                 {chartData.map((d, idx) => (
                   <div key={d.name} className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx] }} />
+                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[idx] }} aria-hidden="true" />
                     <span className="text-sm text-gray-700 flex-1">{d.name}</span>
                     <span className="text-sm font-semibold text-gray-900">{d.value.toLocaleString()} kg</span>
                     <span className="text-xs text-gray-400">{((d.value / emissions.total) * 100).toFixed(1)}%</span>
@@ -151,27 +165,34 @@ export default function QuizPage() {
         <div className="text-center">
           <button onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'dashboard' }))} className="px-8 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-all shadow-lg shadow-emerald-200">Go to Dashboard</button>
         </div>
-      </div>
+      </section>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <section className="max-w-2xl mx-auto px-4 py-8" aria-labelledby="quiz-heading">
       <div className="mb-8">
         <div className="flex justify-between text-sm text-gray-500 mb-2">
           <span>{question.category}</span>
-          <span>{step + 1} of {questions.length}</span>
+          <span aria-live="polite">{step + 1} of {questions.length}</span>
         </div>
-        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden" role="progressbar" aria-valuenow={step + 1} aria-valuemin={1} aria-valuemax={questions.length} aria-label="Quiz progress">
           <div className="h-full bg-emerald-500 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
       </div>
       <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-8 border border-emerald-100">
-        <h2 className="text-xl font-bold text-gray-900 mb-6">{question.label}</h2>
+        <h2 id="quiz-heading" className="text-xl font-bold text-gray-900 mb-6">{question.label}</h2>
         {question.type === 'select' ? (
-          <div className="space-y-3">
-            {question.options?.map(opt => (
-              <button key={opt.value} onClick={() => handleAnswer(opt.value)} className={`w-full text-left px-5 py-3 rounded-xl border-2 transition-all ${currentValue === opt.value ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold' : 'border-gray-100 hover:border-emerald-200 text-gray-700'}`}>
+          <div className="space-y-3" role="radiogroup" aria-labelledby="quiz-heading">
+            {question.options?.map((opt, idx) => (
+              <button
+                key={opt.value}
+                ref={el => { if (el) optionRef.current[idx] = el; }}
+                onClick={() => handleAnswer(opt.value)}
+                role="radio"
+                aria-checked={currentValue === opt.value}
+                className={`w-full text-left px-5 py-3 rounded-xl border-2 transition-all ${currentValue === opt.value ? 'border-emerald-500 bg-emerald-50 text-emerald-700 font-semibold' : 'border-gray-100 hover:border-emerald-200 text-gray-700'}`}
+              >
                 {opt.label}
               </button>
             ))}
@@ -179,23 +200,28 @@ export default function QuizPage() {
         ) : (
           <div>
             <div className="flex items-center gap-4 mb-4">
-              <input type="number" min={question.min} max={question.max} value={currentValue != null ? String(currentValue) : ''} onChange={e => setAnswers({ ...answers, [question.id]: Number(e.target.value) })} className="w-32 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-lg font-semibold text-gray-800" placeholder="0" />
+              <label htmlFor={`quiz-${question.id}`} className="sr-only">{question.label}</label>
+              <input id={`quiz-${question.id}`} type="number" min={question.min} max={question.max} value={currentValue != null ? String(currentValue) : ''} onChange={e => { setValidationError(''); setAnswers({ ...answers, [question.id]: Number(e.target.value) }); }} aria-describedby={validationError ? 'quiz-validation-error' : undefined} className="w-32 px-4 py-3 rounded-xl border-2 border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none text-lg font-semibold text-gray-800" placeholder="0" />
               <span className="text-gray-500 font-medium">{question.unitOverride}</span>
             </div>
             {question.min !== undefined && question.max !== undefined && (
-              <input type="range" min={question.min} max={question.max} value={(currentValue as number) ?? question.min ?? 0} onChange={e => setAnswers({ ...answers, [question.id]: Number(e.target.value) })} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+              <>
+                <label htmlFor={`quiz-range-${question.id}`} className="sr-only">{question.label} slider</label>
+                <input id={`quiz-range-${question.id}`} type="range" min={question.min} max={question.max} value={(currentValue as number) ?? question.min ?? 0} onChange={e => { setValidationError(''); setAnswers({ ...answers, [question.id]: Number(e.target.value) }); }} aria-labelledby={`quiz-${question.id}`} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+              </>
             )}
           </div>
         )}
+        {validationError && <div id="quiz-validation-error" className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 mt-4" role="alert">{validationError}</div>}
         <div className="flex justify-between mt-8">
-          <button onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0} className="flex items-center gap-1 px-4 py-2 text-gray-500 hover:text-gray-700 disabled:opacity-30 transition"><ChevronLeft className="w-4 h-4" /> Back</button>
+          <button onClick={() => { setValidationError(''); setStep(Math.max(0, step - 1)); }} disabled={step === 0} className="flex items-center gap-1 px-4 py-2 text-gray-500 hover:text-gray-700 disabled:opacity-30 transition"><ChevronLeft className="w-4 h-4" aria-hidden="true" /> Back</button>
           {question.type === 'number' && (
-            <button onClick={() => handleAnswer((currentValue as number) ?? 0)} className="flex items-center gap-1 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition">
-              {step === questions.length - 1 ? 'See Results' : 'Next'} <ChevronRight className="w-4 h-4" />
+            <button onClick={handleNumberSubmit} className="flex items-center gap-1 px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition">
+              {step === questions.length - 1 ? 'See Results' : 'Next'} <ChevronRight className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
