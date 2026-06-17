@@ -3,12 +3,21 @@ interface VirtualGardenProps {
   wilting?: boolean;
 }
 
+const LEVEL_LABELS: Record<number, string> = {
+  1: 'Dormant Seed',
+  2: 'Green Sprout',
+  3: 'Leafy Sapling',
+  4: 'Young Tree',
+  5: 'Blossoming Eco-Tree',
+};
+
 export default function VirtualGarden({ level, wilting }: VirtualGardenProps) {
   const wiltClass = wilting ? 'opacity-70 hue-rotate-[30deg] saturate-50' : '';
+  const description = `${LEVEL_LABELS[level]}${wilting ? ' (wilting)' : ''}. Phase ${level} of 5.`;
 
   return (
-    <div className={`relative w-full h-64 flex items-end justify-center ${wiltClass}`}>
-      <svg viewBox="0 0 400 260" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <div className={`relative w-full h-64 flex items-end justify-center ${wiltClass}`} role="img" aria-label={description}>
+      <svg viewBox="0 0 400 260" className="w-full h-full" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#e0f2fe" /><stop offset="100%" stopColor="#fefce8" /></linearGradient>
           <linearGradient id="dirt" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stopColor="#92400e" /><stop offset="100%" stopColor="#78350f" /></linearGradient>
@@ -107,8 +116,8 @@ export default function VirtualGarden({ level, wilting }: VirtualGardenProps) {
           </g>
         )}
       </svg>
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-sm px-4 py-1 rounded-full text-xs font-semibold text-gray-700 border border-emerald-100">
-        Phase {level} of 5 — {level === 1 ? 'Dormant Seed' : level === 2 ? 'Green Sprout' : level === 3 ? 'Leafy Sapling' : level === 4 ? 'Young Tree' : 'Blossoming Eco-Tree'}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-sm px-4 py-1 rounded-full text-xs font-semibold text-gray-700 border border-emerald-100" aria-hidden="true">
+        Phase {level} of 5 — {LEVEL_LABELS[level]}
       </div>
     </div>
   );
