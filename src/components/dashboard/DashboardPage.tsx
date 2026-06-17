@@ -53,7 +53,7 @@ export default function DashboardPage() {
   };
 
   if (!user || !locale || !baselineEmissions) {
-    return (<div className="max-w-5xl mx-auto px-4 py-12 text-center"><Leaf className="w-12 h-12 text-emerald-400 mx-auto mb-4" /><h2 className="text-xl font-bold text-gray-800 mb-2">Complete Your Quiz First</h2><p className="text-gray-500">Head to the Quiz to calculate your baseline carbon footprint.</p><button onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'quiz' }))} className="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition">Take the Quiz</button></div>);
+    return (<div className="max-w-5xl mx-auto px-4 py-12 text-center" role="status"><Leaf className="w-12 h-12 text-emerald-400 mx-auto mb-4" aria-hidden="true" /><h2 className="text-xl font-bold text-gray-800 mb-2">Complete Your Quiz First</h2><p className="text-gray-500">Head to the Quiz to calculate your baseline carbon footprint.</p><button onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'quiz' }))} className="mt-4 px-6 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition">Take the Quiz</button></div>);
   }
 
   const gardenLevel = getGardenLevel(reductionPct);
@@ -80,48 +80,48 @@ export default function DashboardPage() {
     <div className="max-w-6xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-gray-900">Dashboard</h1><p className="text-gray-500 text-sm">Welcome back, {user.name}</p></div>
-        <button onClick={() => setShowCheckin(true)} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-sm flex items-center gap-2"><CheckCircle2 className="w-4 h-4" />Weekly Check-in</button>
+        <button onClick={() => setShowCheckin(true)} aria-label="Start weekly check-in" className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition shadow-sm flex items-center gap-2"><CheckCircle2 className="w-4 h-4" aria-hidden="true" />Weekly Check-in</button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 border border-emerald-100 shadow-sm"><div className="flex items-center gap-2 mb-1"><TrendingDown className="w-4 h-4 text-emerald-500" /><span className="text-xs text-gray-500">Reduction</span></div><p className={`text-2xl font-bold ${dropAnimation ? 'text-emerald-400 animate-pulse' : 'text-emerald-700'}`}>{reductionPct.toFixed(1)}%</p></div>
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 border border-emerald-100 shadow-sm"><div className="flex items-center gap-2 mb-1"><Flame className="w-4 h-4 text-orange-500" /><span className="text-xs text-gray-500">Streak</span></div><p className="text-2xl font-bold text-gray-800">{streak} weeks</p></div>
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 border border-emerald-100 shadow-sm"><div className="flex items-center gap-2 mb-1"><Award className="w-4 h-4 text-yellow-500" /><span className="text-xs text-gray-500">Eco-Points</span></div><p className="text-2xl font-bold text-gray-800">{ecoPoints}</p></div>
-        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 border border-emerald-100 shadow-sm"><div className="flex items-center gap-2 mb-1"><Droplets className="w-4 h-4 text-blue-500" /><span className="text-xs text-gray-500">Annual Footprint</span></div><p className="text-2xl font-bold text-gray-800">{(latestBreakdown.total / 1000).toFixed(1)}t</p></div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" role="list" aria-label="Dashboard statistics">
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 border border-emerald-100 shadow-sm" role="listitem"><div className="flex items-center gap-2 mb-1"><TrendingDown className="w-4 h-4 text-emerald-500" aria-hidden="true" /><span className="text-xs text-gray-500">Reduction</span></div><p className={`text-2xl font-bold ${dropAnimation ? 'text-emerald-400 animate-pulse' : 'text-emerald-700'}`}>{reductionPct.toFixed(1)}%</p></div>
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 border border-emerald-100 shadow-sm" role="listitem"><div className="flex items-center gap-2 mb-1"><Flame className="w-4 h-4 text-orange-500" aria-hidden="true" /><span className="text-xs text-gray-500">Streak</span></div><p className="text-2xl font-bold text-gray-800">{streak} weeks</p></div>
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 border border-emerald-100 shadow-sm" role="listitem"><div className="flex items-center gap-2 mb-1"><Award className="w-4 h-4 text-yellow-500" aria-hidden="true" /><span className="text-xs text-gray-500">Eco-Points</span></div><p className="text-2xl font-bold text-gray-800">{ecoPoints}</p></div>
+        <div className="bg-white/90 backdrop-blur-sm rounded-xl p-4 border border-emerald-100 shadow-sm" role="listitem"><div className="flex items-center gap-2 mb-1"><Droplets className="w-4 h-4 text-blue-500" aria-hidden="true" /><span className="text-xs text-gray-500">Annual Footprint</span></div><p className="text-2xl font-bold text-gray-800">{(latestBreakdown.total / 1000).toFixed(1)}t</p></div>
       </div>
 
-      <div className="flex gap-2 mb-6 flex-wrap">
+      <div className="flex gap-2 mb-6 flex-wrap" aria-label="Earned badges">
         {badges.map(b => {
           const colors: Record<string, string> = { bronze: b.earned ? 'bg-orange-400 text-white' : 'bg-gray-100 text-gray-400', silver: b.earned ? 'bg-gray-400 text-white' : 'bg-gray-100 text-gray-400', gold: b.earned ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-400', platinum: b.earned ? 'bg-emerald-600 text-white' : 'bg-gray-100 text-gray-400' };
-          return <span key={b.id} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${colors[b.id]}`}>{b.id === 'bronze' ? 'B' : b.id === 'silver' ? 'S' : b.id === 'gold' ? 'G' : 'P'} {b.name}</span>;
+          return <span key={b.id} aria-label={`${b.name} badge${b.earned ? ' - earned' : ' - not yet earned'}`} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${colors[b.id]}`}>{b.id === 'bronze' ? 'B' : b.id === 'silver' ? 'S' : b.id === 'gold' ? 'G' : 'P'} {b.name}</span>;
         })}
       </div>
 
       <div className="grid md:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-emerald-100 shadow-sm">
-          <div className="flex items-center gap-2 mb-4"><BarChart3 className="w-5 h-5 text-emerald-600" /><h2 className="text-lg font-bold text-gray-900">Emission Breakdown</h2></div>
+        <section className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-emerald-100 shadow-sm" aria-labelledby="breakdown-heading">
+          <div className="flex items-center gap-2 mb-4"><BarChart3 className="w-5 h-5 text-emerald-600" aria-hidden="true" /><h2 id="breakdown-heading" className="text-lg font-bold text-gray-900">Emission Breakdown</h2></div>
           <div className="flex items-center gap-4">
-            <div className="w-40 h-40">
+            <div className="w-40 h-40" role="img" aria-label={`Emission breakdown: ${donutData.map(d => `${d.name} ${d.value} kg`).join(', ')}`}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart><Pie data={donutData} cx="50%" cy="50%" innerRadius={35} outerRadius={65} paddingAngle={3} dataKey="value" animationBegin={0} animationDuration={800}>{donutData.map((_, idx) => <Cell key={idx} fill={COLORS[idx % COLORS.length]} />)}</Pie><Tooltip formatter={(val) => `${Number(val).toLocaleString()} kg CO2`} /></PieChart>
               </ResponsiveContainer>
             </div>
             <div className="flex-1 space-y-1.5">
-              {donutData.map((d, idx) => (<div key={d.name} className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx] }} /><span className="text-xs text-gray-600 flex-1">{d.name}</span><span className="text-xs font-semibold text-gray-800">{d.value.toLocaleString()} kg</span></div>))}
+              {donutData.map((d, idx) => (<div key={d.name} className="flex items-center gap-2"><div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[idx] }} aria-hidden="true" /><span className="text-xs text-gray-600 flex-1">{d.name}</span><span className="text-xs font-semibold text-gray-800">{d.value.toLocaleString()} kg</span></div>))}
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-emerald-100 shadow-sm">
-          <div className="flex items-center gap-2 mb-4"><TreePine className="w-5 h-5 text-emerald-600" /><h2 className="text-lg font-bold text-gray-900">Your Eco-Garden</h2></div>
+        <section className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-emerald-100 shadow-sm" aria-labelledby="garden-heading">
+          <div className="flex items-center gap-2 mb-4"><TreePine className="w-5 h-5 text-emerald-600" aria-hidden="true" /><h2 id="garden-heading" className="text-lg font-bold text-gray-900">Your Eco-Garden</h2></div>
           <VirtualGarden level={gardenLevel} wilting={wilting} />
           <p className="text-center text-xs text-gray-500 mt-2">{wilting ? 'Your tree is wilting! Complete actions to nurture it back.' : `${reductionPct.toFixed(1)}% reduction from baseline — keep going!`}</p>
-        </div>
+        </section>
       </div>
 
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-emerald-100 shadow-sm mb-6">
-        <div className="flex items-center gap-2 mb-4"><TrendingDown className="w-5 h-5 text-emerald-600" /><h2 className="text-lg font-bold text-gray-900">Progress Over Time</h2></div>
-        <div className="h-64">
+      <section className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 border border-emerald-100 shadow-sm mb-6" aria-labelledby="progress-heading">
+        <div className="flex items-center gap-2 mb-4"><TrendingDown className="w-5 h-5 text-emerald-600" aria-hidden="true" /><h2 id="progress-heading" className="text-lg font-bold text-gray-900">Progress Over Time</h2></div>
+        <div className="h-64" role="img" aria-label="Line chart showing emissions progress over time">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={lineData}>
               <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#a3a3a3" />
@@ -135,18 +135,18 @@ export default function DashboardPage() {
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </section>
 
       {showCheckin && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="checkin-heading">
           <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Weekly Check-in</h2>
+            <h2 id="checkin-heading" className="text-xl font-bold text-gray-900 mb-4">Weekly Check-in</h2>
             <p className="text-sm text-gray-500 mb-6">Estimate your reduction in each category compared to your baseline.</p>
             <div className="space-y-4">
-              {[{ key: 'transport' as const, label: 'Transport Reduction', icon: 'Car' }, { key: 'energy' as const, label: 'Energy Reduction', icon: 'Zap' }, { key: 'food' as const, label: 'Food Reduction', icon: 'Utensils' }, { key: 'waste' as const, label: 'Waste Reduction', icon: 'Recycle' }].map(({ key, label }) => (
+              {[{ key: 'transport' as const, label: 'Transport Reduction' }, { key: 'energy' as const, label: 'Energy Reduction' }, { key: 'food' as const, label: 'Food Reduction' }, { key: 'waste' as const, label: 'Waste Reduction' }].map(({ key, label }) => (
                 <div key={key}>
-                  <div className="flex justify-between mb-1"><span className="text-sm font-medium text-gray-700">{label}</span><span className="text-sm font-bold text-emerald-700">{checkinAnswers[key]}%</span></div>
-                  <input type="range" min={0} max={50} value={checkinAnswers[key]} onChange={e => setCheckinAnswers({ ...checkinAnswers, [key]: Number(e.target.value) })} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                  <div className="flex justify-between mb-1"><label htmlFor={`checkin-${key}`} className="text-sm font-medium text-gray-700">{label}</label><span className="text-sm font-bold text-emerald-700" aria-live="polite">{checkinAnswers[key]}%</span></div>
+                  <input id={`checkin-${key}`} type="range" min={0} max={50} value={checkinAnswers[key]} onChange={e => setCheckinAnswers({ ...checkinAnswers, [key]: Number(e.target.value) })} aria-labelledby={`checkin-${key}`} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
                 </div>
               ))}
             </div>
