@@ -1,6 +1,8 @@
 import { User, QuizAnswers, EmissionBreakdown, WeeklyCheckin, ActionItem, Badge, LeaderboardEntry, Country } from '../types';
 import { getLocale } from '../utils/locale';
 import { calculateEmissions, getGardenLevel, getReductionPct } from '../utils/emissions';
+import { validateEmail, validateName, validatePassword, validateNumberInput, sanitizeText } from '../utils/validation';
+import { DEFAULT_BADGES, BADGE_THRESHOLDS, SEED } from '../constants';
 
 const DB_NAME = 'carbonFootprintDB';
 const DB_VERSION = 1;
@@ -47,14 +49,25 @@ async function simpleHash(str: string): Promise<string> {
 }
 
 export function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+  const arr = new Uint8Array(6);
+  crypto.getRandomValues(arr);
+  const random = Array.from(arr).map(b => b.toString(36).padStart(2, '0')).join('');
+  return Date.now().toString(36) + random;
 }
 
 // ---- USER ----
 export async function createUser(email: string, password: string, name: string, country: Country, city: string): Promise<User> {
+  const sanitizedEmail = sanitizeText(email);
+  const sanitizedName = sanitizeText(name);
+  const emailCheck = validateEmail(sanitizedEmail);
+  if (!emailCheck.valid) throw new Error(emailCheck.error);
+  const nameCheck = validateName(sanitizedName);
+  if (!nameCheck.valid) throw new Error(nameCheck.error);
+  const passCheck = validatePassword(password);
+  if (!passCheck.valid) throw new Error(passCheck.error);
   const db = await openDB();
   const hash = await simpleHash(password);
-  const user: User = { id: generateId(), email, passwordHash: hash, name, country, city, createdAt: Date.now() };
+  const user: User = { id: generateId(), email: sanitizedEmail, passwordHash: hash, name: sanitizedName, country, city, createdAt: Date.now() };
   return new Promise((resolve, reject) => {
     const tx = db.transaction('users', 'readwrite');
     const req = tx.objectStore('users').add(user);
@@ -64,11 +77,13 @@ export async function createUser(email: string, password: string, name: string, 
 }
 
 export async function authenticateUser(email: string, password: string): Promise<User | null> {
+  if (!email || !password) return null;
   const db = await openDB();
   const hash = await simpleHash(password);
+  const sanitizedEmail = sanitizeText(email);
   return new Promise((resolve, reject) => {
     const tx = db.transaction('users', 'readonly');
-    const req = tx.objectStore('users').index('email').get(email);
+    const req = tx.objectStore('users').index('email').get(sanitizedEmail);
     req.onsuccess = () => {
       const user = req.result as User | undefined;
       if (user && user.passwordHash === hash) resolve(user);
@@ -106,8 +121,10 @@ export async function getUserByEmail(email: string): Promise<User | null> {
 }
 
 export async function resetUserPassword(email: string, newPassword: string): Promise<boolean> {
+  const passCheck = validatePassword(newPassword);
+  if (!passCheck.valid) throw new Error(passCheck.error);
   const db = await openDB();
-  const user = await getUserByEmail(email);
+  const user = await getUserByEmail(sanitizeText(email));
   if (!user) return false;
   const hash = await simpleHash(newPassword);
   const updated: User = { ...user, passwordHash: hash };
@@ -121,6 +138,17 @@ export async function resetUserPassword(email: string, newPassword: string): Pro
 
 // ---- QUIZ ----
 export async function saveQuizAnswers(userId: string, answers: QuizAnswers, emissions: EmissionBreakdown): Promise<void> {
+  if (!userId) throw new Error('User ID is required');
+  if (!answers || !emissions) throw new Error('Answers and emissions are required');
+  const numFields: [keyof QuizAnswers, number, number][] = [
+    ['q2_weekly_distance', 0, 1000], ['q3_public_transit_hours', 0, 30],
+    ['q5_short_flights', 0, 50], ['q6_long_flights', 0, 30],
+    ['q7_electricity_bill', 0, 1000], ['q13_garbage_bags', 0, 10],
+  ];
+  for (const [field, min, max] of numFields) {
+    const check = validateNumberInput(answers[field], min, max, field);
+    if (!check.valid) throw new Error(check.error);
+  }
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('quizAnswers', 'readwrite');
@@ -141,6 +169,8 @@ export async function getQuizAnswers(userId: string): Promise<{ answers: QuizAns
 
 // ---- CHECKINS ----
 export async function saveCheckin(checkin: WeeklyCheckin): Promise<void> {
+  if (!checkin.userId || !checkin.id) throw new Error('Checkin requires userId and id');
+  if (checkin.totalNetEmissions < 0) throw new Error('Total emissions cannot be negative');
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('checkins', 'readwrite');
@@ -161,6 +191,9 @@ export async function getCheckins(userId: string): Promise<WeeklyCheckin[]> {
 
 // ---- ACTIONS ----
 export async function saveAction(action: ActionItem): Promise<void> {
+  if (!action.userId || !action.id) throw new Error('Action requires userId and id');
+  if (action.co2SavingKg < 0) throw new Error('CO2 saving cannot be negative');
+  if (!action.title || !action.title.trim()) throw new Error('Action title is required');
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('actions', 'readwrite');
@@ -180,12 +213,6 @@ export async function getActions(userId: string): Promise<ActionItem[]> {
 }
 
 // ---- BADGES ----
-const DEFAULT_BADGES: Badge[] = [
-  { id: 'bronze', name: 'Bronze', description: 'Complete the initial quiz', earned: false, earnedAt: null },
-  { id: 'silver', name: 'Silver', description: '500 Eco-Points + 3-week streak', earned: false, earnedAt: null },
-  { id: 'gold', name: 'Gold', description: '1500 Eco-Points + 15% reduction', earned: false, earnedAt: null },
-  { id: 'platinum', name: 'Platinum', description: 'Top 100 lowest footprint globally', earned: false, earnedAt: null },
-];
 
 export async function getBadges(userId: string): Promise<Badge[]> {
   const db = await openDB();
@@ -315,14 +342,14 @@ export async function seedMockUsers(): Promise<void> {
   const existing = await getAllUsers();
   if (existing.length > 0) { seeded = true; return; }
 
-  for (let i = 0; i < 150; i++) {
+  for (let i = 0; i < SEED.MOCK_USER_COUNT; i++) {
     const country = MOCK_COUNTRIES[i % MOCK_COUNTRIES.length];
     const cities = CITY_MAP[country];
     const city = cities[i % cities.length];
     const name = MOCK_NAMES[i % MOCK_NAMES.length];
     const id = `mock_${i + 1}`;
 
-    const user: User = { id, email: `mock${i+1}@example.com`, passwordHash: '', name, country, city, createdAt: Date.now() - randomInt(30,365)*86400000 };
+    const user: User = { id, email: `mock${i+1}@example.com`, passwordHash: '', name, country, city, createdAt: Date.now() - randomInt(SEED.DATE_RANGE_DAYS_MIN,SEED.DATE_RANGE_DAYS_MAX)*86400000 };
     const locale = getLocale(country);
     const answers = generateMockQuizAnswers();
     const emissions = calculateEmissions(answers, locale);
@@ -335,9 +362,9 @@ export async function seedMockUsers(): Promise<void> {
 
       await saveQuizAnswers(id, answers, emissions);
 
-      const numCheckins = randomInt(1,8);
+      const numCheckins = randomInt(SEED.CHECKIN_COUNT_MIN,SEED.CHECKIN_COUNT_MAX);
       for (let c = 0; c < numCheckins; c++) {
-        const reduction = randomInt(-5,30);
+        const reduction = randomInt(SEED.REDUCTION_PCT_MIN,SEED.REDUCTION_PCT_MAX);
         const totalNet = Math.round(emissions.total * (1 - reduction / 100));
         const gardenLevel = getGardenLevel(Math.max(0, reduction));
         await saveCheckin({
@@ -351,14 +378,14 @@ export async function seedMockUsers(): Promise<void> {
         });
       }
 
-      const points = randomInt(50, 2500);
+      const points = randomInt(SEED.ECO_POINTS_MIN, SEED.ECO_POINTS_MAX);
       await saveEcoPoints(id, points);
-      await saveStreak(id, randomInt(1,12), Date.now() - randomInt(0,13)*86400000);
+      await saveStreak(id, randomInt(SEED.STREAK_MIN, SEED.STREAK_MAX), Date.now() - randomInt(0,13)*86400000);
 
-      const badges = DEFAULT_BADGES.map(b => ({ ...b }));
-      if (i < 100) { badges[0].earned = true; badges[0].earnedAt = user.createdAt; }
-      if (points >= 500) { badges[1].earned = true; badges[1].earnedAt = user.createdAt + 86400000*21; }
-      if (points >= 1500) { badges[2].earned = true; badges[2].earnedAt = user.createdAt + 86400000*60; }
+      const badges: Badge[] = DEFAULT_BADGES.map(b => ({ ...b }));
+      if (i < BADGE_THRESHOLDS.PLATINUM_RANK) { badges[0].earned = true; badges[0].earnedAt = user.createdAt; }
+      if (points >= BADGE_THRESHOLDS.SILVER_POINTS) { badges[1].earned = true; badges[1].earnedAt = user.createdAt + 86400000*21; }
+      if (points >= BADGE_THRESHOLDS.GOLD_POINTS) { badges[2].earned = true; badges[2].earnedAt = user.createdAt + 86400000*60; }
       await saveBadges(id, badges);
     } catch { /* skip duplicates */ }
   }
@@ -391,16 +418,16 @@ export async function checkAndAwardBadges(userId: string): Promise<Badge[]> {
   const quizData = await getQuizAnswers(userId);
 
   if (quizData && !badges[0].earned) { badges[0].earned = true; badges[0].earnedAt = Date.now(); }
-  if (points >= 500 && streakVal >= 3 && !badges[1].earned) { badges[1].earned = true; badges[1].earnedAt = Date.now(); }
-  if (quizData && points >= 1500 && !badges[2].earned) {
+  if (points >= BADGE_THRESHOLDS.SILVER_POINTS && streakVal >= BADGE_THRESHOLDS.SILVER_STREAK && !badges[1].earned) { badges[1].earned = true; badges[1].earnedAt = Date.now(); }
+  if (quizData && points >= BADGE_THRESHOLDS.GOLD_POINTS && !badges[2].earned) {
     const checkins = await getCheckins(userId);
     const currentTotal = checkins.length > 0 ? checkins[checkins.length-1].totalNetEmissions : quizData.emissions.total;
-    if (getReductionPct(quizData.emissions.total, currentTotal) >= 15) { badges[2].earned = true; badges[2].earnedAt = Date.now(); }
+    if (getReductionPct(quizData.emissions.total, currentTotal) >= BADGE_THRESHOLDS.GOLD_REDUCTION_PCT) { badges[2].earned = true; badges[2].earnedAt = Date.now(); }
   }
   if (!badges[3].earned) {
     const lb = await getLeaderboard(userId);
     const userEntry = lb.find(e => e.userId === userId);
-    if (userEntry && userEntry.rank <= 100) { badges[3].earned = true; badges[3].earnedAt = Date.now(); }
+    if (userEntry && userEntry.rank <= BADGE_THRESHOLDS.PLATINUM_RANK) { badges[3].earned = true; badges[3].earnedAt = Date.now(); }
   }
 
   await saveBadges(userId, badges);
